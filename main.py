@@ -12,10 +12,7 @@ from ui_motogp_viewer import Ui_MainWindow
 
 
 class DatabaseManager:
-    """
-    Manages all interactions with the SQLite database (motogp_database.db).
-    Adapts to the existing 'grand_prix_race_winners' table structure without 'id' or '"Grand Prix"' columns.
-    """
+  
 
     def __init__(self, db_name="motogp_database.db"):
         self.db_name = db_name
@@ -23,7 +20,6 @@ class DatabaseManager:
         self.connect()
 
     def connect(self):
-        """Establishes a connection to the SQLite database."""
         try:
             self.conn = sqlite3.connect(self.db_name)
             self.cursor = self.conn.cursor()
@@ -36,9 +32,7 @@ class DatabaseManager:
 
 
     def insert_entry(self, season, circuit, class_name, rider, constructor, country):
-        """Inserts a new race/winner entry into the 'grand_prix_race_winners' table."""
         try:
-            # "Grand Prix" column is not in the database, so it's not inserted
             self.cursor.execute("""
                 INSERT INTO grand_prix_race_winners (Season, Circuit, Class, Rider, Constructor, Country)
                 VALUES (?, ?, ?, ?, ?, ?)
@@ -54,10 +48,6 @@ class DatabaseManager:
             return False
 
     def select_all_entries(self, search_term="", category_filter="All"):
-        """
-        Selects all entries from the 'grand_prix_race_winners' table,
-        with optional search by 'Circuit' and filter by 'Class'.
-        """
         query = """
             SELECT Season, Circuit, Class, Rider, Constructor, Country
             FROM grand_prix_race_winners
@@ -83,9 +73,6 @@ class DatabaseManager:
 
     def update_entry(self, original_season, original_circuit, original_class_name, original_rider,
                      new_season, new_circuit, new_class_name, new_rider, new_constructor, new_country):
-        """
-        Updates an existing entry in the 'grand_prix_race_winners' table using a composite key.
-        """
         try:
             self.cursor.execute("""
                 UPDATE grand_prix_race_winners
@@ -104,7 +91,6 @@ class DatabaseManager:
             return False
 
     def delete_entry(self, season, circuit, class_name, rider):
-        """Deletes an entry from the 'grand_prix_race_winners' table using a composite key."""
         try:
             self.cursor.execute("""
                 DELETE FROM grand_prix_race_winners
@@ -117,28 +103,20 @@ class DatabaseManager:
             return False
 
     def get_unique_classes(self):
-        """Retrieves unique 'Class' values for filtering."""
         self.cursor.execute(
             "SELECT DISTINCT Class FROM grand_prix_race_winners WHERE Class IS NOT NULL AND Class != '' ORDER BY Class ASC")
         return [row[0] for row in self.cursor.fetchall()]
 
     def get_unique_countries(self):
-        """Retrieves unique 'Country' values for filtering and input."""
         self.cursor.execute(
             "SELECT DISTINCT Country FROM grand_prix_race_winners WHERE Country IS NOT NULL AND Country != '' ORDER BY Country ASC")
         return [row[0] for row in self.cursor.fetchall()]
 
     def close(self):
-        """Closes the database connection."""
         if self.conn:
             self.conn.close()
 
 class MotoGPApp(QMainWindow, Ui_MainWindow):
-    """
-    Main application window for the Moto GP World Championship Winners Management System.
-    Handles GUI layout, user interactions, and integrates with the DatabaseManager.
-    Adapted to work with the 'grand_prix_race_winners' table without 'id' or '"Grand Prix"' columns.
-    """
 
     def __init__(self):
         super().__init__()
@@ -168,7 +146,6 @@ class MotoGPApp(QMainWindow, Ui_MainWindow):
 
 
     def load_all_data(self, search_term="", class_filter="All"):
-        """Loads all data from the database into the main table."""
         entries = self.db_manager.select_all_entries(search_term, class_filter)
         self.data_table.setRowCount(0)  # Clear existing rows
         for row_num, entry in enumerate(entries):
@@ -178,19 +155,16 @@ class MotoGPApp(QMainWindow, Ui_MainWindow):
         self.statusBar().showMessage(f"Loaded {len(entries)} entries.", 3000)
 
     def search_data(self):
-        """Triggers data loading based on the search input (by Circuit)."""
         search_text = self.search_input.text()
         current_filter = self.class_filter_combo.currentText()
         self.load_all_data(search_text, current_filter)
 
     def filter_data_by_class(self):
-        """Filters data based on the selected class."""
         selected_class = self.class_filter_combo.currentText()
         search_text = self.search_input.text()  # Keep search text when filtering
         self.load_all_data(search_text, selected_class)
 
     def populate_filters(self):
-        """Populates the class and country filter QComboBoxes with unique values from the database."""
         classes = self.db_manager.get_unique_classes()
         self.class_filter_combo.blockSignals(True)
         self.class_filter_combo.clear()
@@ -206,7 +180,6 @@ class MotoGPApp(QMainWindow, Ui_MainWindow):
         self.country_input.blockSignals(False)
 
     def load_entry_to_form(self):
-        """Loads selected entry data from the table into the input form."""
         selected_row = self.data_table.currentRow()
         if selected_row >= 0:
             season = self.data_table.item(selected_row, 0).text()
@@ -227,7 +200,6 @@ class MotoGPApp(QMainWindow, Ui_MainWindow):
             self.statusBar().showMessage(f"Loaded entry for: {rider} ({circuit})", 2000)
 
     def add_entry(self):
-        """Adds a new entry to the database."""
         season_str = self.season_input.text().strip()
         circuit = self.circuit_input.text().strip()
         class_name = self.class_input.currentText()
@@ -252,7 +224,6 @@ class MotoGPApp(QMainWindow, Ui_MainWindow):
             self.statusBar().showMessage(f"Entry for '{rider}' added.", 3000)
 
     def update_entry(self):
-        """Updates an existing entry in the database."""
         if not self._current_selected_key:
             QMessageBox.warning(self, "Selection Error", "Please select an entry to update from the table.")
             return
@@ -285,7 +256,6 @@ class MotoGPApp(QMainWindow, Ui_MainWindow):
             self.statusBar().showMessage(f"Entry for '{new_rider}' updated.", 3000)
 
     def delete_entry(self):
-        """Deletes an entry from the database."""
         if not self._current_selected_key:
             QMessageBox.warning(self, "Selection Error", "Please select an entry to delete from the table.")
             return
@@ -304,7 +274,6 @@ class MotoGPApp(QMainWindow, Ui_MainWindow):
                 self.statusBar().showMessage(f"Entry for {original_rider} deleted.", 3000)
 
     def clear_form(self):
-        """Clears all input fields in the data entry form."""
         self._current_selected_key = None
         self.season_input.clear()
         self.circuit_input.clear()
@@ -315,7 +284,6 @@ class MotoGPApp(QMainWindow, Ui_MainWindow):
         self.statusBar().showMessage("Form cleared.", 1000)
 
     def closeEvent(self, event):
-        """Handles the application close event, ensuring database connection is closed."""
         self.db_manager.close()
         event.accept()
 
